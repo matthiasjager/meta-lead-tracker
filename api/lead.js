@@ -1,23 +1,25 @@
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(200).send("OK");
-  }
-
   try {
+    // Immer sofort OK zurückgeben (wichtig für Mailchimp)
+    res.status(200).json({ status: "ok" });
+
+    // Nur bei POST versuchen wir Daten zu verarbeiten
+    if (req.method !== "POST") {
+      return;
+    }
+
     const body = req.body || {};
 
-    // Mailchimp sendet Daten oft so:
     const email =
       body?.data?.email ||
       body?.data?.merges?.EMAIL ||
       body?.email;
 
-    // Wenn keine Email → einfach OK zurückgeben (wichtig!)
     if (!email) {
-      return res.status(200).json({ message: "No email, but OK" });
+      return;
     }
 
-    // Hash erstellen
+    // Email hashen
     const encoder = new TextEncoder();
     const data = encoder.encode(email.trim().toLowerCase());
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -47,10 +49,8 @@ export default async function handler(req, res) {
       }
     );
 
-    return res.status(200).json({ success: true });
-
   } catch (error) {
-    // GANZ WICHTIG: trotzdem 200 zurückgeben!
-    return res.status(200).json({ error: error.message });
+    // Fehler komplett ignorieren (wichtig für Mailchimp!)
+    console.log("Error:", error);
   }
 }
